@@ -1,13 +1,14 @@
-{ stdenv, lib, fetchgit, dtc }:
+{ stdenv, lib, fetchFromGitHub, dtc }:
 
 stdenv.mkDerivation rec {
   pname = "mc-utils";
   version = "LSDK-19.09";
 
-  src = fetchgit {
-    url = "https://source.codeaurora.org/external/qoriq/qoriq-components/${pname}";
+  src = fetchFromGitHub {
+    owner = "nxp-qoriq";
+    repo = "mc-utils";
     rev = version;
-    sha256 = "0xljcnzqhd233h21q1rgndj1wh1ybyw1xw4f9k9gs2mn7inlsg6n";
+    hash = "sha256-1jxNbTy2Cv3STI7wHrhfPkAeZLMvBxwEHEM0iL9lknY=";
   };
 
   patches = [

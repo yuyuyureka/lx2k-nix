@@ -1,7 +1,7 @@
 { stdenv
 , lib
 , buildPackages
-, fetchgit
+, fetchFromGitHub
 , python3
 , gettext
 , ddrSpeed
@@ -17,10 +17,11 @@ stdenv.mkDerivation rec {
   pname = "rcw-mem-${toString ddrSpeed}MHz";
   version = "LSDK-21.08";
 
-  src = fetchgit {
-    url = "https://source.codeaurora.org/external/qoriq/qoriq-components/rcw";
+  src = fetchFromGitHub {
+    owner = "nxp-qoriq";
+    repo = "rcw";
     rev = "refs/tags/LSDK-21.08";
-    sha256 = "16h1zxrlgg9ak99q6hjxvnrwa4031knqbf4057bd6g2a496jazfm";
+    hash = "sha256-1X0lTSJKPNPWKYC4he0MAxDFs91dQoNTmiq9R3P/AZo=";
   };
 
   patches = [

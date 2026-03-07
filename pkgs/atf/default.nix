@@ -1,7 +1,7 @@
 { stdenv
 , lib
 , buildPackages
-, fetchgit
+, fetchFromGitHub
 , tianocore
 , rcw
 , bc
@@ -19,10 +19,11 @@ stdenv.mkDerivation rec {
   pname = "atf";
   version = "LSDK-21.08";
 
-  src = fetchgit {
-    url = "https://source.codeaurora.org/external/qoriq/qoriq-components/atf";
+  src = fetchFromGitHub {
+    owner = "nxp-qoriq";
+    repo = "atf";
     rev = "refs/tags/LSDK-21.08";
-    sha256 = "02fg6bd88p5kv0mkz87shhrc518jigsipdfq97zrndzswaax9jmr";
+    hash = "sha256-ucrUleL6N5v/Sdi1G/WLEoXCMoT6oD8r2LNchNoyzwk=";
   };
 
   patches = [
