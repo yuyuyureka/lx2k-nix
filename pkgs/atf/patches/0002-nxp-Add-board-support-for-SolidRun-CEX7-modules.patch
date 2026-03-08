@@ -1,21 +1,20 @@
-From 0aed3cda581d98ac755775ef3f490d6f1b3e9e01 Mon Sep 17 00:00:00 2001
-From: Rabeeh Khoury <rabeeh@solid-run.com>
-Date: Sun, 5 Sep 2021 17:02:09 +0300
-Subject: [PATCH 1/4] plat/nxp: Add lx2160acex7 module support
+From 8f486dc248fddb257ab818da0c15a98ef414052e Mon Sep 17 00:00:00 2001
+From: Jon Nettleton <jon@solid-run.com>
+Date: Thu, 11 Mar 2021 11:37:17 +0100
+Subject: [PATCH 2/6] nxp: Add board support for SolidRun CEX7 modules
 
-Adds SolidRun's LX2160A based SoC COM express type 7 module support.
-The patch is based on LX2160ARDB board and modifies the support to two
-SO-DIMMs DDR4 support on I2C address 0x51 and 0x53.
+This adds the board target for designs based on the SolidRun
+LX2160a CEX7 based boards.
 
-Signed-off-by: Rabeeh Khoury <rabeeh@solid-run.com>
+Signed-off-by: Jon Nettleton <jon@solid-run.com>
 ---
- plat/nxp/soc-lx2160a/lx2160acex7/ddr_init.c   | 101 +++++++++++++++++
- plat/nxp/soc-lx2160a/lx2160acex7/plat_def.h   | 103 ++++++++++++++++++
- plat/nxp/soc-lx2160a/lx2160acex7/platform.c   |  30 +++++
- plat/nxp/soc-lx2160a/lx2160acex7/platform.mk  |  48 ++++++++
- .../soc-lx2160a/lx2160acex7/platform_def.h    |  15 +++
- plat/nxp/soc-lx2160a/lx2160acex7/policy.h     |  39 +++++++
- 6 files changed, 336 insertions(+)
+ plat/nxp/soc-lx2160a/lx2160acex7/ddr_init.c   | 111 ++++++++++++++++++
+ plat/nxp/soc-lx2160a/lx2160acex7/plat_def.h   | 105 +++++++++++++++++
+ plat/nxp/soc-lx2160a/lx2160acex7/platform.c   |  29 +++++
+ plat/nxp/soc-lx2160a/lx2160acex7/platform.mk  |  91 ++++++++++++++
+ .../soc-lx2160a/lx2160acex7/platform_def.h    |  14 +++
+ plat/nxp/soc-lx2160a/lx2160acex7/policy.h     |  38 ++++++
+ 6 files changed, 388 insertions(+)
  create mode 100644 plat/nxp/soc-lx2160a/lx2160acex7/ddr_init.c
  create mode 100644 plat/nxp/soc-lx2160a/lx2160acex7/plat_def.h
  create mode 100644 plat/nxp/soc-lx2160a/lx2160acex7/platform.c
@@ -25,16 +24,15 @@ Signed-off-by: Rabeeh Khoury <rabeeh@solid-run.com>
 
 diff --git a/plat/nxp/soc-lx2160a/lx2160acex7/ddr_init.c b/plat/nxp/soc-lx2160a/lx2160acex7/ddr_init.c
 new file mode 100644
-index 000000000..3e1881d4a
+index 000000000..3b9b0a461
 --- /dev/null
 +++ b/plat/nxp/soc-lx2160a/lx2160acex7/ddr_init.c
-@@ -0,0 +1,101 @@
+@@ -0,0 +1,111 @@
 +/*
-+ * Copyright 2019 SolidRun ltd.
++ * Copyright 2018-2020 NXP
 + *
 + * SPDX-License-Identifier: BSD-3-Clause
 + *
-+ * Author Rabeeh Khoury <rabeeh@solid-run.com>
 + */
 +
 +#include <assert.h>
@@ -56,29 +54,47 @@ index 000000000..3e1881d4a
 +int ddr_board_options(struct ddr_info *priv)
 +{
 +	struct memctl_opt *popts = &priv->opt;
++	const struct ddr_conf *conf = &priv->conf;
 +
-+	popts->vref_dimm = 0x24;		/* range 1, 83.4% */
++	popts->vref_dimm = U(0x24);		/* range 1, 83.4% */
 +	popts->rtt_override = 0;
-+	popts->rtt_park = 240;
++	popts->rtt_park = U(240);
 +	popts->otf_burst_chop_en = 0;
-+	popts->burst_length = DDR_BL8;
-+	popts->trwt_override = 1;
-+	popts->bstopre = 0;			/* auto precharge */
++	popts->burst_length = U(DDR_BL8);
++	popts->trwt_override = U(1);
++	popts->bstopre = U(0);			/* auto precharge */
 +	popts->addr_hash = 1;
-+	popts->trwt = 0x3;
-+	popts->twrt = 0x3;
-+	popts->trrt = 0x3;
-+	popts->twwt = 0x3;
-+	popts->vref_phy = 0x60;	/* 75% */
-+	popts->odt = 48;
-+	popts->phy_tx_impedance = 48;
++
++	/* Set ODT impedance on PHY side */
++	switch (conf->cs_on_dimm[1]) {
++	case 0xc:	/* Two slots dual rank */
++	case 0x4:	/* Two slots single rank, not valid for interleaving */
++		popts->trwt = U(0xf);
++		popts->twrt = U(0x7);
++		popts->trrt = U(0x7);
++		popts->twwt = U(0x7);
++		popts->vref_phy = U(0x6B);	/* 83.6% */
++		popts->odt = U(60);
++		popts->phy_tx_impedance = U(28);
++		break;
++	case 0:		/* Ont slot used */
++	default:
++		popts->trwt = U(0x3);
++		popts->twrt = U(0x3);
++		popts->trrt = U(0x3);
++		popts->twwt = U(0x3);
++		popts->vref_phy = U(0x60);	/* 75% */
++		popts->odt = U(48);
++		popts->phy_tx_impedance = U(28);
++		break;
++	}
 +
 +	return 0;
 +}
 +
 +long long init_ddr(void)
 +{
-+	int spd_addr[] = { 0x51, 0x53 };
++	int spd_addr[] = { 0x51, 0x52, 0x53, 0x54 };
 +	struct ddr_info info;
 +	struct sysinfo sys;
 +	long long dram_size;
@@ -110,13 +126,6 @@ index 000000000..3e1881d4a
 +	info.dimm_on_ctlr = DDRC_NUM_DIMM;
 +
 +	info.warm_boot_flag = DDR_WRM_BOOT_NT_SUPPORTED;
-+#ifdef NXP_WARM_BOOT
-+	if (wrm_bt_flg) {
-+		info.warm_boot_flag = DDR_WARM_BOOT;
-+	} else if (wrm_bt_flg == 0x0) {
-+		info.warm_boot_flag = DDR_COLD_BOOT;
-+	}
-+#endif
 +
 +	dram_size = dram_init(&info
 +#if defined(NXP_HAS_CCN504) || defined(NXP_HAS_CCN508)
@@ -132,10 +141,10 @@ index 000000000..3e1881d4a
 +}
 diff --git a/plat/nxp/soc-lx2160a/lx2160acex7/plat_def.h b/plat/nxp/soc-lx2160a/lx2160acex7/plat_def.h
 new file mode 100644
-index 000000000..08db34dc2
+index 000000000..f480f9297
 --- /dev/null
 +++ b/plat/nxp/soc-lx2160a/lx2160acex7/plat_def.h
-@@ -0,0 +1,103 @@
+@@ -0,0 +1,105 @@
 +/*
 + * Copyright 2018-2020 NXP
 + *
@@ -148,14 +157,14 @@ index 000000000..08db34dc2
 +
 +#include <arch.h>
 +#include <cortex_a72.h>
-+#include <policy.h>
-+#include <soc.h>
 +/* Required without TBBR.
 + * To include the defines for DDR PHY
 + * Images.
 + */
 +#include <tbbr_img_def.h>
 +
++#include <policy.h>
++#include <soc.h>
 +
 +#if defined(IMAGE_BL31)
 +#define LS_SYS_TIMCTL_BASE		0x2890000
@@ -231,20 +240,22 @@ index 000000000..08db34dc2
 +			GIC_INTR_CFG_EDGE)
 +
 +/* SGI 15 and Secure watchdog interrupts assigned to Group 0 */
++#define NXP_IRQ_SEC_SGI_7		15
++
 +#define PLAT_LS_G0_IRQ_PROPS(grp)	\
 +	INTR_PROP_DESC(BL31_WDOG_SEC, GIC_HIGHEST_SEC_PRIORITY, grp, \
 +			GIC_INTR_CFG_EDGE), \
 +	INTR_PROP_DESC(BL31_NS_WDOG_WS1, GIC_HIGHEST_SEC_PRIORITY, grp, \
 +			GIC_INTR_CFG_EDGE), \
-+	INTR_PROP_DESC(15, GIC_HIGHEST_SEC_PRIORITY, grp, \
++	INTR_PROP_DESC(NXP_IRQ_SEC_SGI_7, GIC_HIGHEST_SEC_PRIORITY, grp, \
 +			GIC_INTR_CFG_LEVEL)
 +#endif
 diff --git a/plat/nxp/soc-lx2160a/lx2160acex7/platform.c b/plat/nxp/soc-lx2160a/lx2160acex7/platform.c
 new file mode 100644
-index 000000000..3186cc9a1
+index 000000000..7622cf09a
 --- /dev/null
 +++ b/plat/nxp/soc-lx2160a/lx2160acex7/platform.c
-@@ -0,0 +1,30 @@
+@@ -0,0 +1,29 @@
 +/*
 + * Copyright 2020 NXP
 + *
@@ -274,19 +285,17 @@ index 000000000..3186cc9a1
 +	return false;
 +#endif
 +}
-+
 diff --git a/plat/nxp/soc-lx2160a/lx2160acex7/platform.mk b/plat/nxp/soc-lx2160a/lx2160acex7/platform.mk
 new file mode 100644
-index 000000000..eabf6f580
+index 000000000..22fbfd481
 --- /dev/null
 +++ b/plat/nxp/soc-lx2160a/lx2160acex7/platform.mk
-@@ -0,0 +1,48 @@
+@@ -0,0 +1,91 @@
 +#
-+# Copyright 2021 SolidRun ltd.
++# Copyright 2018-2020 NXP
 +#
 +# SPDX-License-Identifier: BSD-3-Clause
 +#
-+# Author Rabeeh Khoury <rabeeh@solid-run.com>
 +
 +# board-specific build parameters
 +
@@ -297,12 +306,16 @@ index 000000000..eabf6f580
 +
 + # DDR Compilation Configs
 +NUM_OF_DDRC	:=	2
-+DDRC_NUM_DIMM	:=	1
++DDRC_NUM_DIMM	:=	2
 +DDRC_NUM_CS	:=	2
 +DDR_ECC_EN	:=	yes
 + #enable address decoding feature
 +DDR_ADDR_DEC	:=	yes
 +APPLY_MAX_CDD	:=	yes
++
++# DDR Errata
++ERRATA_DDR_A011396	:= 1
++ERRATA_DDR_A050450	:= 1
 +
 + # On-Board Flash Details
 +FLASH_TYPE	:=	MT35XU512A
@@ -316,31 +329,70 @@ index 000000000..eabf6f580
 + # Platform specific features.
 +WARM_BOOT	:=	no
 +
++ # Adding platform specific defines
++
++$(eval $(call add_define_val,BOARD,'"${BOARD}"'))
++
++ifeq (${POVDD_ENABLE},yes)
++$(eval $(call add_define,CONFIG_POVDD_ENABLE))
++endif
++
++ifneq (${FLASH_TYPE},)
++$(eval $(call add_define,CONFIG_${FLASH_TYPE}))
++endif
++
++ifneq (${XSPI_FLASH_SZ},)
++$(eval $(call add_define_val,NXP_FLEXSPI_FLASH_SIZE,${XSPI_FLASH_SZ}))
++endif
++
++ifneq (${FSPI_ERASE_4K},)
++$(eval $(call add_define_val,CONFIG_FSPI_ERASE_4K,${FSPI_ERASE_4K}))
++endif
++
++ifneq (${NUM_OF_DDRC},)
++$(eval $(call add_define_val,NUM_OF_DDRC,${NUM_OF_DDRC}))
++endif
++
++ifneq (${DDRC_NUM_DIMM},)
++$(eval $(call add_define_val,DDRC_NUM_DIMM,${DDRC_NUM_DIMM}))
++endif
++
++ifneq (${DDRC_NUM_CS},)
++$(eval $(call add_define_val,DDRC_NUM_CS,${DDRC_NUM_CS}))
++endif
++
++ifeq (${DDR_ADDR_DEC},yes)
++$(eval $(call add_define,CONFIG_DDR_ADDR_DEC))
++endif
++
++ifeq (${DDR_ECC_EN},yes)
++$(eval $(call add_define,CONFIG_DDR_ECC_EN))
++endif
++
++# Platform can control the base address for non-volatile storage.
++#$(eval $(call add_define_val,NV_STORAGE_BASE_ADDR,'${BL2_BIN_XSPI_NOR_END_ADDRESS} - 2 * ${NXP_XSPI_NOR_UNIT_SIZE}'))
++
++ifeq (${WARM_BOOT},yes)
++$(eval $(call add_define_val,PHY_TRAINING_REGS_ON_FLASH,'${BL2_BIN_XSPI_NOR_END_ADDRESS} - ${NXP_XSPI_NOR_UNIT_SIZE}'))
++endif
++
 + # Adding Platform files build files
 +BL2_SOURCES	+=	${BOARD_PATH}/ddr_init.c\
 +			${BOARD_PATH}/platform.c
-+
-+SUPPORTED_BOOT_MODE	:=	flexspi_nor	\
-+				sd		\
-+				emmc
-+
-+# Adding platform board build info
-+include plat/nxp/common/plat_common_def.mk
 +
 + # Adding SoC build info
 +include plat/nxp/soc-lx2160a/soc.mk
 diff --git a/plat/nxp/soc-lx2160a/lx2160acex7/platform_def.h b/plat/nxp/soc-lx2160a/lx2160acex7/platform_def.h
 new file mode 100644
-index 000000000..0e621d686
+index 000000000..5fa774e90
 --- /dev/null
 +++ b/plat/nxp/soc-lx2160a/lx2160acex7/platform_def.h
-@@ -0,0 +1,15 @@
+@@ -0,0 +1,14 @@
 +/*
-+ * Copyright 2021 SolidRun ltd.
++ * Copyright 2018-2020 NXP
 + *
 + * SPDX-License-Identifier: BSD-3-Clause
 + *
-+ * Author: Rabeeh Khoury <rabeeh@solid-run.com>
 + */
 +
 +#ifndef PLATFORM_DEF_H
@@ -352,16 +404,15 @@ index 000000000..0e621d686
 +#endif
 diff --git a/plat/nxp/soc-lx2160a/lx2160acex7/policy.h b/plat/nxp/soc-lx2160a/lx2160acex7/policy.h
 new file mode 100644
-index 000000000..da44acee3
+index 000000000..1095f3840
 --- /dev/null
 +++ b/plat/nxp/soc-lx2160a/lx2160acex7/policy.h
-@@ -0,0 +1,39 @@
+@@ -0,0 +1,38 @@
 +/*
-+ * Copyright 2021 SolidRun ltd.
++ * Copyright 2018-2020 NXP
 + *
 + * SPDX-License-Identifier: BSD-3-Clause
 + *
-+ * Author : Rabeeh Khoury <rabeeh@solid-run.com>
 + */
 +
 +#ifndef POLICY_H
@@ -396,5 +447,5 @@ index 000000000..da44acee3
 +
 +#endif /* POLICY_H */
 -- 
-2.25.1
+2.53.0
 

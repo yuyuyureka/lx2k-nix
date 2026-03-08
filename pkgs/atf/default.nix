@@ -1,62 +1,30 @@
-{ stdenv
-, lib
-, buildPackages
-, fetchFromGitHub
-, tianocore
-, rcw
+{ arm-trusted-firmware
 , bc
-, openssl
+, ubootQemuAarch64
+, rcw
+, tianocore
 , bootMode ? "sd"
-, bl33 ? "${tianocore}/FV/LX2160ACEX7_EFI.fd"
+, bl33 ? "${tianocore}/FV/LX2160ARDB_EFI.fd"
 }:
 
-assert lib.elem bootMode [ "sd" "spi" ];
-let
-  atfBoot = "auto";
-  isCross = stdenv.buildPlatform != stdenv.hostPlatform;
-in
-stdenv.mkDerivation rec {
-  pname = "atf";
-  version = "LSDK-21.08";
-
-  src = fetchFromGitHub {
-    owner = "nxp-qoriq";
-    repo = "atf";
-    rev = "refs/tags/LSDK-21.08";
-    hash = "sha256-ucrUleL6N5v/Sdi1G/WLEoXCMoT6oD8r2LNchNoyzwk=";
-  };
-
-  patches = [
-    ./patches/0001-plat-nxp-Add-lx2160acex7-module-support.patch
-    ./patches/0002-plat-nxp-Add-lx2162-som-support.patch
-    ./patches/0003-lx2160acex7-assert-SUS_S5-GPIO-to-poweroff-the-COM.patch
-    ./patches/0004-plat-nxp-lx2160a-auto-boot.patch
-    ./patches/0005-lx2160a-flush-i2c-bus-before-initialising-ddr.patch
-    ./patches/0006-lx2160a-flush-i2c-bus-connected-mux-channels.patch
-    ./patches/0007-lx2160a-flush-i2c-buses-unconditionally.patch
+(arm-trusted-firmware.buildArmTrustedFirmware {
+  platform = "lx2160acex7";
+  filesToInstall = [
+    "build/lx2160acex7/release/*.bin"
+    "build/lx2160acex7/release/*.pbl"
+    "tools/fiptool/fiptool"
   ];
-
-  enableParallelBuilding = true;
-
-  depsBuildBuild = [ buildPackages.stdenv.cc ];
-  nativeBuildInputs = [ bc openssl ];
-
-  makeFlags = [
-    "PLAT=lx2160acex7"
+  extraMakeFlags = [
     "BL33=${bl33}"
     "RCW=${rcw}/lx2160acex7/RCW/template.bin"
     "TRUSTED_BOARD_BOOT=0"
     "GENERATE_COT=0"
-    "BOOT_MODE=${atfBoot}"
+    "BOOT_MODE=${bootMode}"
     "SECURE_BOOT=false"
-    "LDFLAGS=--no-warn-rwx-segment"
-  ] ++ lib.optional isCross "CROSS_COMPILE=${stdenv.cc.targetPrefix}" ++ [
     "all"
     "fip"
     "pbl"
   ];
-
-  hardeningDisable = [ "all" ];
 
   installPhase = ''
     mkdir -p $out/lx2160acex7
@@ -68,7 +36,18 @@ stdenv.mkDerivation rec {
     cp -v tools/fiptool/fiptool $out/bin
   '';
 
-  passthru = {
-    inherit atfBoot;
-  };
-}
+  rk3399-m0-oc = null;
+
+}).overrideAttrs (old: {
+  nativeBuildInputs = old.nativeBuildInputs ++ [ bc ];
+  patches = (old.patches or []) ++ [
+    ./patches/0001-nxp-Allow-board-specific-platform-functions.patch
+    ./patches/0002-nxp-Add-board-support-for-SolidRun-CEX7-modules.patch
+    ./patches/0003-nxp-lx2160acex7-Add-custom-handlers-for-SolidRun-Har.patch
+    ./patches/0004-nxp-ddr4-fix-spd_to_ps-calculation.patch
+    ./patches/0005-nxp-ddr4-Add-support-for-XMP2-based-timing-profiles.patch
+    ./patches/0006-nxp-lx2160acex7-Add-memory-settings-to-the-platform.patch
+
+    ./patches/0009-nxp-ddr-disarm-error-when-using-non-identical-DIMMs.patch
+  ];
+})

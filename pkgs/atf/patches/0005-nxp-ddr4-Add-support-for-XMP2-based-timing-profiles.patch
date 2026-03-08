@@ -1,0 +1,200 @@
+From 5f7dfed237e248dbeead9f5cfafa94fe80f76054 Mon Sep 17 00:00:00 2001
+From: Jon Nettleton <jon@solid-run.com>
+Date: Fri, 12 Mar 2021 09:29:59 +0100
+Subject: [PATCH 5/6] nxp: ddr4: Add support for XMP2 based timing profiles
+
+A lot of modern memory has a base JEDEC speed and then the faster
+profiles up to DDR4 3200 are encoding in their XMP2 based SPD
+profiles.  Since we do not support voltage scaling we allow a build
+time define to support either profile 1 or 2 and check to verify that
+the voltage requirement is the standard 1.2V.
+
+Signed-off-by: Jon Nettleton <jon@solid-run.com>
+---
+ drivers/nxp/ddr/nxp-ddr/dimm.c | 101 +++++++++++++++++++++++++++++++++
+ include/drivers/nxp/ddr/dimm.h |  44 +++++++++++++-
+ 2 files changed, 143 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/nxp/ddr/nxp-ddr/dimm.c b/drivers/nxp/ddr/nxp-ddr/dimm.c
+index a82db6c66..55d928a41 100644
+--- a/drivers/nxp/ddr/nxp-ddr/dimm.c
++++ b/drivers/nxp/ddr/nxp-ddr/dimm.c
+@@ -130,6 +130,103 @@ compute_ranksize(const struct ddr4_spd *spd)
+ 	return bsize;
+ }
+ 
++#ifdef XMP_PROFILE
++static void apply_xmp_timings(const struct ddr4_spd *spd, struct dimm_params *pdimm)
++{
++	int profile = XMP_PROFILE;
++
++	if ((profile > 2) || (profile < 1))
++		return;
++
++	if ((spd->xmp1_orgconf & profile)) {
++		profile--;
++		if ((spd->xmp[profile].module_vdd & 0x7F) > 20) {
++			NOTICE("XMP Profile voltage requirements not met\n");
++			return;
++		} else {
++			NOTICE("Using XMP Profile\n");
++		}
++	} else {
++		return;
++	}
++
++	/* sdram minimum cycle time */
++	pdimm->tckmin_x_ps = spd_to_ps(spd->xmp[profile].tck_min, spd->xmp[profile].fine_tck_min);
++	debug("tckmin_x_ps %d\n", pdimm->tckmin_x_ps);
++
++	/* sdram max cycle time */
++	pdimm->tckmax_ps = spd_to_ps(spd->tck_max, spd->fine_tck_max);
++	debug("tckmax_ps %d\n", pdimm->tckmax_ps);
++
++	/*
++	 * CAS latency supported
++	 * bit0 - CL7
++	 * bit4 - CL11
++	 * bit8 - CL15
++	 * bit12- CL19
++	 * bit16- CL23
++	 */
++	pdimm->caslat_x  = (spd->xmp[profile].caslat_b1 << 7)	|
++			   (spd->xmp[profile].caslat_b2 << 15)	|
++			   (spd->xmp[profile].caslat_b3 << 23);
++	debug("caslat_x 0x%x\n", pdimm->caslat_x);
++
++	if (spd->xmp[profile].caslat_b4 != 0)
++		WARN("Unhandled caslat_b4 value\n");
++
++	/*
++	 * min CAS latency time
++	 */
++	pdimm->taa_ps = spd_to_ps(spd->xmp[profile].taa_min, spd->xmp[profile].fine_taa_min);
++	debug("taa_ps %d\n", pdimm->taa_ps);
++
++	/*
++	 * min RAS to CAS delay time
++	 */
++	pdimm->trcd_ps = spd_to_ps(spd->xmp[profile].trcd_min, spd->xmp[profile].fine_trcd_min);
++	debug("trcd_ps %d\n", pdimm->trcd_ps);
++
++	/*
++	 * Min Row Precharge Delay Time
++	 */
++	pdimm->trp_ps = spd_to_ps(spd->xmp[profile].trp_min, spd->xmp[profile].fine_trp_min);
++	debug("trp_ps %d\n", pdimm->trp_ps);
++
++	/* min active to precharge delay time */
++	pdimm->tras_ps = (((spd->xmp[profile].tras_trc_ext & 0xf) << 8) +
++			  spd->xmp[profile].tras_min_lsb) * pdimm->mtb_ps;
++	debug("tras_ps %d\n", pdimm->tras_ps);
++
++	/* min active to actice/refresh delay time */
++	pdimm->trc_ps = spd_to_ps((((spd->xmp[profile].tras_trc_ext & 0xf0) << 4) +
++				   spd->xmp[profile].trc_min_lsb), spd->xmp[profile].fine_trc_min);
++	debug("trc_ps %d\n", pdimm->trc_ps);
++	/* Min Refresh Recovery Delay Time */
++	pdimm->trfc1_ps = ((spd->xmp[profile].trfc1_min_msb << 8) | (spd->xmp[profile].trfc1_min_lsb)) *
++		       pdimm->mtb_ps;
++	debug("trfc1_ps %d\n", pdimm->trfc1_ps);
++	pdimm->trfc2_ps = ((spd->xmp[profile].trfc2_min_msb << 8) | (spd->xmp[profile].trfc2_min_lsb)) *
++		       pdimm->mtb_ps;
++	debug("trfc2_ps %d\n", pdimm->trfc2_ps);
++	pdimm->trfc4_ps = ((spd->xmp[profile].trfc4_min_msb << 8) | (spd->xmp[profile].trfc4_min_lsb)) *
++			pdimm->mtb_ps;
++	debug("trfc4_ps %d\n", pdimm->trfc4_ps);
++	/* min four active window delay time */
++	pdimm->tfaw_ps = (((spd->xmp[profile].tfaw_msb & 0xf) << 8) | spd->xmp[profile].tfaw_min) *
++			pdimm->mtb_ps;
++	debug("tfaw_ps %d\n", pdimm->tfaw_ps);
++
++	/* min row active to row active delay time, different bank group */
++	pdimm->trrds_ps = spd_to_ps(spd->xmp[profile].trrds_min, spd->xmp[profile].fine_trrds_min);
++	debug("trrds_ps %d\n", pdimm->trrds_ps);
++	/* min row active to row active delay time, same bank group */
++	pdimm->trrdl_ps = spd_to_ps(spd->xmp[profile].trrdl_min, spd->xmp[profile].fine_trrdl_min);
++	debug("trrdl_ps %d\n", pdimm->trrdl_ps);
++	/* min CAS to CAS Delay Time (tCCD_Lmin), same bank group */
++	// pdimm->tccdl_ps = spd_to_ps(spd->xmp[profile].tccdl_min, spd->xmp[profile].fine_tccdl_min);
++}
++#endif
++
+ int cal_dimm_params(const struct ddr4_spd *spd, struct dimm_params *pdimm)
+ {
+ 	int ret;
+@@ -395,5 +492,9 @@ int cal_dimm_params(const struct ddr4_spd *spd, struct dimm_params *pdimm)
+ 	pdimm->dq_mapping_ors = ((spd->mapping[0] >> 6) & 0x3) == 0 ? 1 : 0;
+ 	debug("dq_mapping_ors %d\n", pdimm->dq_mapping_ors);
+ 
++#ifdef XMP_PROFILE
++	apply_xmp_timings(spd, pdimm);
++#endif
++
+ 	return 0;
+ }
+diff --git a/include/drivers/nxp/ddr/dimm.h b/include/drivers/nxp/ddr/dimm.h
+index c758a4236..3007dc7d7 100644
+--- a/include/drivers/nxp/ddr/dimm.h
++++ b/include/drivers/nxp/ddr/dimm.h
+@@ -45,6 +45,43 @@
+ #define dump_spd(spd, len) {}
+ #endif
+ 
++struct xmp_profile_data {
++	unsigned char module_vdd;             /* 393, 440 XMP Module VDD Voltage Level */
++	unsigned char res_394[396 - 394];	/* 394-395, 441-442 XMP Reserved */ 
++	unsigned char tck_min;                /* 396, 443 XMP SDRAM Minimum Cycle Time (tCKAVGmin) */
++	unsigned char caslat_b1;              /* 397, 444 XMP CAS latencies, 1st byte */       
++	unsigned char caslat_b2;              /* 398, 445 XMP CAS Latencies, 2nd byte */         
++	unsigned char caslat_b3;              /* 399, 446 XMP CAS Latencies, 3rd byte */          
++	unsigned char caslat_b4;              /* 400, 447 XMP CAS Latencies, 4th byte */          
++	unsigned char taa_min;                /* 401, 448 XMP Minimum CAS Latency Time (tAAmin) */ 
++	unsigned char trcd_min;               /* 402, 449 XMP Minimum RAS# to CAS# Delay Time (tRCDmin) */
++	unsigned char trp_min;                /* 403, 450 XMP Minimum Row Precharge Delay Time (tRPmin) */
++	unsigned char tras_trc_ext;           /* 404, 451 XMP Upper Nibbles for tRAS and tRC */          
++	unsigned char tras_min_lsb;           /* 405, 452 XMP Minimum Active to Precharge Delay Time (tRASmin), Least Significant Byte */ 
++	unsigned char trc_min_lsb;            /* 406, 453 XMP Minimum Active to Active/Refresh Delay Time (tRCmin), Least Significant Byte */
++	unsigned char trfc1_min_lsb;          /* 407, 454 XMP Minimum Refresh Recovery Delay Time (tRFC1min) Least Significant Byte */
++	unsigned char trfc1_min_msb;          /* 408, 455 XMP Minimum Refresh Recovery Delay Time (tRFC1min) Most Significant Byte */
++	unsigned char trfc2_min_lsb;          /* 409, 456 XMP Minimum Refresh Recovery Delay Time (tRFC2min) Least Significant Byte */
++	unsigned char trfc2_min_msb;          /* 410, 457 XMP Minimum Refresh Recovery Delay Time (tRFC2min) Most Significant Byte */
++	unsigned char trfc4_min_lsb;          /* 411, 458 XMP Minimum Refresh Recovery Delay Time (tRFC4min) Least Significant Byte */
++	unsigned char trfc4_min_msb;          /* 412, 459 XMP Minimum Refresh Recovery Delay Time (tRFC4min) Most Significant Byte */
++	unsigned char tfaw_msb;               /* 413, 460 Upper Nibble for tFAW */       
++	unsigned char tfaw_min;               /* 414, 461 Minimum Four Activate Window Delay Time (tFAWmin), Least Significant Byte */
++	unsigned char trrds_min;              /* 415, 462 Minimum Activate to Activate Delay Time (tRRD_Smin), different bank group */             
++	unsigned char trrdl_min;              /* 416, 463 Minimum Activate to Activate Delay Time (tRRD_Lmin), same bank group */
++	unsigned char tccdl_min;              /* 417, 464 Minimum Activate to Activate Delay Time (tCCS_Lmin), same bank group */              
++	unsigned char res_418[424 - 418];     /* 418-423, 465-470 XMP Reserved */ 
++	unsigned char fine_tccdl_min;         /* 424, 471 Fine Offset for Minimum Activate to Activate Delay Time (tCCS_Lmin), same bank group */
++	unsigned char fine_trrdl_min;         /* 425, 472 Fine Offset for Minimum Activate to Activate Delay Time (tRRD_Lmin), different bank group */
++	unsigned char fine_trrds_min;         /* 426, 473 Fine Offset for Minimum Activate to Activate Delay Time (tRRD_Smin), same bank group */
++	unsigned char fine_trc_min;           /* 427, 474 Fine Offset for Minimum Active to Active/Refresh Delay Time (tRCmin) */
++	unsigned char fine_trp_min;           /* 428, 475 Minimum Row Precharge Delay Time (tRPmin) */
++	unsigned char fine_trcd_min;          /* 429, 476 Fine Offset for Minimum RAS# to CAS# Delay Time (tRCDmin) */             
++	unsigned char fine_taa_min;           /* 430, 477 Fine Offset for Minimum CAS Latency Time (tAAmin) */
++	unsigned char fine_tck_min;           /* 431, 478 Fine Offset for SDRAM Maximum Cycle Time (tCKAVGmax) */
++	unsigned char res_433[440 - 432];     /* 433-439, 480-486 XMP Reserved */ 
++};
++
+ /* From JEEC Standard No. 21-C release 23A */
+ struct ddr4_spd {
+ 	/* General Section: Bytes 0-127 */
+@@ -250,8 +287,11 @@ struct ddr4_spd {
+ 	unsigned char dmid_lsb;		/* 350 DRAM MfgID Code LSB */
+ 	unsigned char dmid_msb;		/* 351 DRAM MfgID Code MSB */
+ 	unsigned char stepping;		/* 352 DRAM stepping */
+-	unsigned char msd[29];		/* 353~381 Mfg's Specific Data */
+-	unsigned char res_382[2];	/* 382~383 Reserved */
++	unsigned char msd[382 - 353];   /* 353~381 Mfg's Specific Data */
++	unsigned char res_382[386 - 382];       /* 382~392 Reserved */
++	unsigned char xmp1_orgconf;
++	unsigned char res_387[393 - 387];	/* 382~392 Reserved */
++	struct xmp_profile_data xmp[2];
+ };
+ 
+ /* Parameters for a DDR dimm computed from the SPD */
+-- 
+2.53.0
+

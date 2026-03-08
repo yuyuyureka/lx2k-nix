@@ -2,13 +2,13 @@
 
 stdenv.mkDerivation rec {
   pname = "mc-utils";
-  version = "LSDK-19.09";
+  version = "10.40.0";
 
   src = fetchFromGitHub {
     owner = "nxp-qoriq";
     repo = "mc-utils";
-    rev = version;
-    hash = "sha256-1jxNbTy2Cv3STI7wHrhfPkAeZLMvBxwEHEM0iL9lknY=";
+    rev = "mc_release_${version}";
+    hash = "sha256-1jxNbTy2Cv3STI7wHrhfPkAeZLMvBxwEHEM0iL9lknb=";
   };
 
   patches = [

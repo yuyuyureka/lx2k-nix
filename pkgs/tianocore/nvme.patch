@@ -1,0 +1,40 @@
+diff --git a/Platform/NXP/LX2160aRdbPkg/LX2160aRdbPkg.dsc b/Platform/NXP/LX2160aRdbPkg/LX2160aRdbPkg.dsc
+index 800bb33ac2..8482451fba 100644
+--- a/Platform/NXP/LX2160aRdbPkg/LX2160aRdbPkg.dsc
++++ b/Platform/NXP/LX2160aRdbPkg/LX2160aRdbPkg.dsc
+@@ -73,6 +73,11 @@
+   MdeModulePkg/Bus/Pci/PciHostBridgeDxe/PciHostBridgeDxe.inf
+   MdeModulePkg/Bus/Pci/PciBusDxe/PciBusDxe.inf
+ 
++  #
++  # NVME
++  #
++  MdeModulePkg/Bus/Pci/NvmExpressDxe/NvmExpressDxe.inf
++
+   #
+   # Dynamic Table Factory
+   !if $(DYNAMIC_ACPI_ENABLE) == TRUE
+diff --git a/Platform/NXP/LX2160aRdbPkg/LX2160aRdbPkg.fdf b/Platform/NXP/LX2160aRdbPkg/LX2160aRdbPkg.fdf
+index 3b0a86b3a0..18ad426a89 100644
+--- a/Platform/NXP/LX2160aRdbPkg/LX2160aRdbPkg.fdf
++++ b/Platform/NXP/LX2160aRdbPkg/LX2160aRdbPkg.fdf
+@@ -139,6 +139,11 @@ READ_LOCK_STATUS   = TRUE
+   INF MdeModulePkg/Bus/Pci/PciHostBridgeDxe/PciHostBridgeDxe.inf
+   INF MdeModulePkg/Bus/Pci/PciBusDxe/PciBusDxe.inf
+ 
++  #
++  # NVME
++  #
++  INF MdeModulePkg/Bus/Pci/NvmExpressDxe/NvmExpressDxe.inf
++
+   #
+   # FAT filesystem + GPT/MBR partitioning
+   #
+@@ -160,6 +165,7 @@ READ_LOCK_STATUS   = TRUE
+ 
+   INF Silicon/NXP/Drivers/UsbHcdInitDxe/UsbHcd.inf
+ 
++
+   #
+   # AHCI Support
+   #

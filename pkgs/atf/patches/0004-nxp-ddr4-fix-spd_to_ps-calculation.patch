@@ -1,0 +1,30 @@
+From e44c8de4e87460fc05b32ec38eb7a4f6b69d9142 Mon Sep 17 00:00:00 2001
+From: Jon Nettleton <jon@solid-run.com>
+Date: Fri, 12 Mar 2021 09:25:33 +0100
+Subject: [PATCH 4/6] nxp: ddr4: fix spd_to_ps calculation
+
+The ftb is treated as a char but that value is actually an encoding
+of two based modifier.  The existing implementation was only fine
+tuning to greater values and noop on tuning below the mtb.
+
+Signed-off-by: Jon Nettleton <jon@solid-run.com>
+---
+ include/drivers/nxp/ddr/dimm.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/include/drivers/nxp/ddr/dimm.h b/include/drivers/nxp/ddr/dimm.h
+index fcae17984..c758a4236 100644
+--- a/include/drivers/nxp/ddr/dimm.h
++++ b/include/drivers/nxp/ddr/dimm.h
+@@ -27,7 +27,7 @@
+ #define SPD_SPA1_ADDRESS		0x37
+ 
+ #define spd_to_ps(mtb, ftb)	\
+-	((mtb) * pdimm->mtb_ps + ((ftb) * pdimm->ftb_10th_ps) / 10)
++	(mtb * pdimm->mtb_ps + ((-(ftb & 0x80) + (ftb & ~0x80)) * pdimm->ftb_10th_ps) / 10)
+ 
+ #ifdef DDR_DEBUG
+ #define dump_spd(spd, len) {				\
+-- 
+2.53.0
+

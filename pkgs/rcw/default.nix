@@ -15,13 +15,13 @@ let
 in
 stdenv.mkDerivation rec {
   pname = "rcw-mem-${toString ddrSpeed}MHz";
-  version = "LSDK-21.08";
+  version = "6.6.52-2.2.0";
 
   src = fetchFromGitHub {
     owner = "nxp-qoriq";
     repo = "rcw";
-    rev = "refs/tags/LSDK-21.08";
-    hash = "sha256-1X0lTSJKPNPWKYC4he0MAxDFs91dQoNTmiq9R3P/AZo=";
+    tag = "lf-${version}";
+    hash = "sha256-RPVRUV/iFfe69fkT8sifRoOm7hDZgGkHCgFUTlX7QI8=";
   };
 
   patches = [
@@ -29,7 +29,7 @@ stdenv.mkDerivation rec {
     ./patches/0002-Set-io-pads-as-GPIO.patch
     ./patches/0003-S2-enable-gen3-xspi-increase-divisor-to-28.patch
     ./patches/0004-refactor-a009531-a008851-and-a011270.patch
-    ./patches/0006-lx2160a-add-SVR-check-for-a050234-to-apply-only-on-r.patch
+    #./patches/0006-lx2160a-add-SVR-check-for-a050234-to-apply-only-on-r.patch
     ./patches/0007-lx2160acex7-pcie-workarounds-and-fan-full-speed.patch
     ./patches/0008-lx2160a-add-generic-bootloc-section.patch
     ./patches/0009-lx2160acex7-remove-all-predefined-RCW-files.patch

@@ -1,0 +1,79 @@
+From f20d00a6d41701d20b8fdc2a525fb9fb0880170b Mon Sep 17 00:00:00 2001
+From: Pierre Gondois <pierre.gondois@arm.com>
+Date: Fri, 7 Jun 2024 17:22:39 +0200
+Subject: [PATCH 4/5] Platform/NXP: Move Pci Config Space info to Arch Common
+
+Some DynamicTables objects have been moved from the Arm namespace
+to a new Arch Common namespace. Reflect this change by
+renaming/moving the relevant object.
+
+This patch modifies the ConfigurationManager of the NXP
+platforms for the following Arch Common object Id:
+- EArchCommonObjPciConfigSpaceInfo
+
+Signed-off-by: Pierre Gondois <pierre.gondois@arm.com>
+---
+ .../ConfigurationManager.c                    | 26 +++++++++----------
+ .../ConfigurationManager.h                    |  2 +-
+ 2 files changed, 14 insertions(+), 14 deletions(-)
+
+diff --git a/Platform/NXP/ConfigurationManagerPkg/ConfigurationManagerDxe/ConfigurationManager.c b/Platform/NXP/ConfigurationManagerPkg/ConfigurationManagerDxe/ConfigurationManager.c
+index d1e02cacaf..dc872c765d 100644
+--- a/Platform/NXP/ConfigurationManagerPkg/ConfigurationManagerDxe/ConfigurationManager.c
++++ b/Platform/NXP/ConfigurationManagerPkg/ConfigurationManagerDxe/ConfigurationManager.c
+@@ -528,6 +528,19 @@ GetArchCommonNameSpaceObject (
+                  );
+       break;
+ 
++    case EArchCommonObjPciConfigSpaceInfo:
++      Status = HandleCmObjectRefByToken (
++                 This,
++                 CmObjectId,
++                 PlatformRepo->PciConfigInfo,
++                 sizeof (PlatformRepo->PciConfigInfo),
++                 ARRAY_SIZE (PlatformRepo->PciConfigInfo),
++                 Token,
++                 GetPciConfigInfo,
++                 CmObject
++                 );
++      break;
++
+       default: {
+       Status = EFI_NOT_FOUND;
+       DEBUG ((
+@@ -673,19 +686,6 @@ GetArmNameSpaceObject (
+                  );
+       break;
+ 
+-    case EArmObjPciConfigSpaceInfo:
+-      Status = HandleCmObjectRefByToken (
+-                 This,
+-                 CmObjectId,
+-                 PlatformRepo->PciConfigInfo,
+-                 sizeof (PlatformRepo->PciConfigInfo),
+-                 ARRAY_SIZE (PlatformRepo->PciConfigInfo),
+-                 Token,
+-                 GetPciConfigInfo,
+-                 CmObject
+-                 );
+-      break;
+-
+     default: {
+       Status = EFI_NOT_FOUND;
+       DEBUG ((
+diff --git a/Platform/NXP/ConfigurationManagerPkg/ConfigurationManagerDxe/ConfigurationManager.h b/Platform/NXP/ConfigurationManagerPkg/ConfigurationManagerDxe/ConfigurationManager.h
+index 494adbc775..88a26879f7 100644
+--- a/Platform/NXP/ConfigurationManagerPkg/ConfigurationManagerDxe/ConfigurationManager.h
++++ b/Platform/NXP/ConfigurationManagerPkg/ConfigurationManagerDxe/ConfigurationManager.h
+@@ -108,7 +108,7 @@ typedef struct PlatformRepositoryInfo {
+   CM_ARM_GIC_ITS_INFO                       GicItsInfo;
+ 
+   /// PCI configuration space information
+-  CM_ARM_PCI_CONFIG_SPACE_INFO              PciConfigInfo[PLAT_PCI_CONFG_COUNT];
++  CM_ARCH_COMMON_PCI_CONFIG_SPACE_INFO      PciConfigInfo[PLAT_PCI_CONFG_COUNT];
+ 
+   /// Serial port information for serial port console redirection port
+   CM_ARCH_COMMON_SERIAL_PORT_INFO           SpcrSerialPort;
+-- 
+2.53.0
+

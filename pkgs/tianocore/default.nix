@@ -1,37 +1,23 @@
-{ stdenv, fetchFromGitHub, edk2, utillinux, nasm, acpica-tools, dtc, qoriq-mc-bin }:
+{ lib, stdenv, fetchFromGitHub, edk2, util-linux, nasm, acpica-tools, dtc, qoriq-mc-bin }:
 let
   edk2-platforms = stdenv.mkDerivation {
     name = "edk2-platforms";
     src = fetchFromGitHub {
-      owner = "SolidRun";
+      owner = "tianocore";
       repo = "edk2-platforms";
-      rev = "de2ef829e9f69eef255617cb536d13fa03c20dcc";
-      sha256 = "00wy4494xbpqllpzjidll5cm6w5pfn9wia7m76ybyg05wmi180az";
+      rev = "1c4580c402b0d9f3ba426a300b5f50c5a4affd10";
+      hash = "sha256-GE22OUbKrPWN6ENqNo1w6jK0GFbgPx+dJu2tgCA/ZRg=";
     };
     patches = [
-      ../edk2/patches/0001-Serdes-fix-integer-overflow-when-computing-Serdes-pr.patch
+      # https://github.com/tianocore/edk2-platforms/pull/239
+      ./0001-Platform-NXP-Add-Arch-Common-objects-handler.patch
+      ./0002-Platform-NXP-Move-Power-Mgmt-Profile-info-to-Arch-Co.patch
+      ./0003-Platform-NXP-Move-Serial-Port-info-to-Arch-Common.patch
+      ./0004-Platform-NXP-Move-Pci-Config-Space-info-to-Arch-Comm.patch
+      ./0005-Platform-NXP-Update-DynamicTablesPkg-generator-paths.patch
+
+      ./nvme.patch
     ];
-    postPatch = ''
-      sed -i -e 's@SECTION RAW = Silicon/NXP/QoriqMcBinary/.*\.itb@SECTION RAW = ${qoriq-mc-bin}/lx2160a/mc_lx2160a_10.30.0.itb@' Platform/SolidRun/LX2160aCex7/LX2160aCex7.fdf
-    '';
-    buildPhase = "true";
-    installPhase = ''
-      mkdir -p $out
-      cp -r * $out/
-    '';
-    dontFixup = true;
-  };
-  edk2-non-osi = stdenv.mkDerivation {
-    name = "edk2-non-osi";
-    src = fetchFromGitHub {
-      owner = "SolidRun";
-      repo = "edk2-non-osi";
-      rev = "c4f571fe0da70cafc58b90342a766da854e71572";
-      sha256 = "0rrd0k3vqnmnnqizcqjvpdii9nyr6503kifm90hj3pz9a61qjf27";
-    };
-    postUnpack = ''
-      rm -r $sourceRoot/Silicon/NXP/QoriqMcBinary
-    '';
     buildPhase = "true";
     installPhase = ''
       mkdir -p $out
@@ -40,11 +26,11 @@ let
     dontFixup = true;
   };
 in
-edk2.mkDerivation "${edk2-platforms}/Platform/SolidRun/LX2160aCex7/LX2160aCex7.dsc" {
+edk2.mkDerivation "${edk2-platforms}/Platform/NXP/LX2160aRdbPkg/LX2160aRdbPkg.dsc" {
   name = "tianocore-honeycomb-lx2k";
-  nativeBuildInputs = [ utillinux nasm acpica-tools dtc ];
+  nativeBuildInputs = [ util-linux nasm acpica-tools dtc ];
   hardeningDisable = [ "format" "stackprotector" "pic" "fortify" ];
   preBuild = ''
-    export PACKAGES_PATH=${edk2}:${edk2-platforms}:${edk2-non-osi}
+    export PACKAGES_PATH=${edk2}:${edk2-platforms}
   '';
 }

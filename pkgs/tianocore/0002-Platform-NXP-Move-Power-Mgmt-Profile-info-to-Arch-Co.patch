@@ -1,0 +1,83 @@
+From d12881da23b95c1f69a388353821fac46c10f4e0 Mon Sep 17 00:00:00 2001
+From: Pierre Gondois <pierre.gondois@arm.com>
+Date: Fri, 7 Jun 2024 16:41:56 +0200
+Subject: [PATCH 2/5] Platform/NXP: Move Power Mgmt Profile info to Arch Common
+
+Some DynamicTables objects have been moved from the Arm namespace
+to a new Arch Common namespace. Reflect this change by
+renaming/moving the relevant object.
+
+This patch modifies the ConfigurationManager of the NXP
+platforms for the following Arch Common object Id:
+- EArchCommonObjPowerManagementProfileInfo
+
+Signed-off-by: Pierre Gondois <pierre.gondois@arm.com>
+---
+ .../ConfigurationManager.c                    | 22 +++++++++----------
+ .../ConfigurationManager.h                    |  3 ++-
+ 2 files changed, 13 insertions(+), 12 deletions(-)
+
+diff --git a/Platform/NXP/ConfigurationManagerPkg/ConfigurationManagerDxe/ConfigurationManager.c b/Platform/NXP/ConfigurationManagerPkg/ConfigurationManagerDxe/ConfigurationManager.c
+index b5ad69cc96..6de0c768e8 100644
+--- a/Platform/NXP/ConfigurationManagerPkg/ConfigurationManagerDxe/ConfigurationManager.c
++++ b/Platform/NXP/ConfigurationManagerPkg/ConfigurationManagerDxe/ConfigurationManager.c
+@@ -508,7 +508,17 @@ GetArchCommonNameSpaceObject (
+   PlatformRepo = This->PlatRepoInfo;
+ 
+   switch (GET_CM_OBJECT_ID (CmObjectId)) {
+-    default: {
++    case EArchCommonObjPowerManagementProfileInfo:
++      Status = HandleCmObject (
++                 CmObjectId,
++                 &PlatformRepo->PmProfileInfo,
++                 sizeof (PlatformRepo->PmProfileInfo),
++                 1,
++                 CmObject
++                 );
++      break;
++
++      default: {
+       Status = EFI_NOT_FOUND;
+       DEBUG ((
+         DEBUG_INFO,
+@@ -567,16 +577,6 @@ GetArmNameSpaceObject (
+                  );
+       break;
+ 
+-    case EArmObjPowerManagementProfileInfo:
+-      Status = HandleCmObject (
+-                 CmObjectId,
+-                 &PlatformRepo->PmProfileInfo,
+-                 sizeof (PlatformRepo->PmProfileInfo),
+-                 1,
+-                 CmObject
+-                 );
+-      break;
+-
+     case EArmObjGenericTimerInfo:
+       Status = HandleCmObject (
+                  CmObjectId,
+diff --git a/Platform/NXP/ConfigurationManagerPkg/ConfigurationManagerDxe/ConfigurationManager.h b/Platform/NXP/ConfigurationManagerPkg/ConfigurationManagerDxe/ConfigurationManager.h
+index 0c7dd411f4..c276ba0489 100644
+--- a/Platform/NXP/ConfigurationManagerPkg/ConfigurationManagerDxe/ConfigurationManager.h
++++ b/Platform/NXP/ConfigurationManagerPkg/ConfigurationManagerDxe/ConfigurationManager.h
+@@ -3,6 +3,7 @@
+ 
+   Copyright 2020 NXP
+   Copyright 2020 Puresoftware Ltd
++  Copyright (c) 2024, Arm Limited. All rights reserved.<BR>
+ 
+   SPDX-License-Identifier: BSD-2-Clause-Patent
+ 
+@@ -80,7 +81,7 @@ typedef struct PlatformRepositoryInfo {
+   CM_ARM_BOOT_ARCH_INFO                     BootArchInfo;
+ 
+   /// Power management profile information
+-  CM_ARM_POWER_MANAGEMENT_PROFILE_INFO      PmProfileInfo;
++  CM_ARCH_COMMON_POWER_MANAGEMENT_PROFILE_INFO  PmProfileInfo;
+ 
+   /// Generic timer information
+   CM_ARM_GENERIC_TIMER_INFO                 GenericTimerInfo;
+-- 
+2.53.0
+

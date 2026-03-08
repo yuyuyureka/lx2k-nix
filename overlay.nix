@@ -29,8 +29,6 @@ self: super: {
 
     mc-utils = self.callPackage ./pkgs/mc-utils { };
 
-    edk2 = callPackage ./pkgs/edk2 { };
-
     tianocore = callPackage ./pkgs/tianocore { };
 
     isoImage = self.callPackage ./pkgs/isoImage { };

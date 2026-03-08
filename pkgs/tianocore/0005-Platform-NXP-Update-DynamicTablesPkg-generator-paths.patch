@@ -1,0 +1,35 @@
+From a1ad7d683bc0f1abbfb22e13d959f61f6dc33794 Mon Sep 17 00:00:00 2001
+From: Pierre Gondois <pierre.gondois@arm.com>
+Date: Thu, 7 Nov 2024 14:58:56 +0100
+Subject: [PATCH 5/5] Platform/NXP: Update DynamicTablesPkg generator paths
+
+Some DynamicTables generators have been moved to an Arm specific
+folder. Reflect this change by renaming/moving the relevant object.
+
+Signed-off-by: Pierre Gondois <pierre.gondois@arm.com>
+---
+ Platform/NXP/LX2160aRdbPkg/LX2160aRdbPkg.dsc | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/Platform/NXP/LX2160aRdbPkg/LX2160aRdbPkg.dsc b/Platform/NXP/LX2160aRdbPkg/LX2160aRdbPkg.dsc
+index 112f6cc1a4..800bb33ac2 100644
+--- a/Platform/NXP/LX2160aRdbPkg/LX2160aRdbPkg.dsc
++++ b/Platform/NXP/LX2160aRdbPkg/LX2160aRdbPkg.dsc
+@@ -78,11 +78,11 @@
+   !if $(DYNAMIC_ACPI_ENABLE) == TRUE
+     DynamicTablesPkg/Drivers/DynamicTableFactoryDxe/DynamicTableFactoryDxe.inf {
+       <LibraryClasses>
+-        NULL|DynamicTablesPkg/Library/Acpi/Arm/AcpiFadtLibArm/AcpiFadtLibArm.inf
++        NULL|DynamicTablesPkg/Library/Acpi/Common/AcpiFadtLib/AcpiFadtLib.inf
+         NULL|DynamicTablesPkg/Library/Acpi/Arm/AcpiGtdtLibArm/AcpiGtdtLibArm.inf
+         NULL|DynamicTablesPkg/Library/Acpi/Arm/AcpiMadtLibArm/AcpiMadtLibArm.inf
+-        NULL|DynamicTablesPkg/Library/Acpi/Arm/AcpiMcfgLibArm/AcpiMcfgLibArm.inf
+-        NULL|DynamicTablesPkg/Library/Acpi/Arm/AcpiSpcrLibArm/AcpiSpcrLibArm.inf
++        NULL|DynamicTablesPkg/Library/Acpi/Common/AcpiMcfgLib/AcpiMcfgLib.inf
++        NULL|DynamicTablesPkg/Library/Acpi/Common/AcpiSpcrLib/AcpiSpcrLib.inf
+         NULL|Platform/NXP/LX2160aRdbPkg/AcpiTablesInclude/PlatformAcpiDsdtLib.inf
+     }
+   !endif
+-- 
+2.53.0
+

@@ -1,0 +1,32 @@
+From 535d4439459caf66490d1206a7c0c81f92eccd0a Mon Sep 17 00:00:00 2001
+From: Jon Nettleton <jon@solid-run.com>
+Date: Fri, 12 Mar 2021 12:49:56 +0100
+Subject: [PATCH 6/6] nxp: lx2160acex7: Add memory settings to the platform
+
+This moves the DDR firmware offset on disk for smaller image sizes
+and allows XMP profiles to be set at build time for faster timings
+
+Signed-off-by: Jon Nettleton <jon@solid-run.com>
+---
+ plat/nxp/soc-lx2160a/lx2160acex7/plat_def.h  | 2 ++
+ plat/nxp/soc-lx2160a/lx2160acex7/platform.mk | 4 ++++
+ 2 files changed, 6 insertions(+)
+
+diff --git a/plat/nxp/soc-lx2160a/lx2160acex7/platform.mk b/plat/nxp/soc-lx2160a/lx2160acex7/platform.mk
+index 2a561a5c5..811b915e2 100644
+--- a/plat/nxp/soc-lx2160a/lx2160acex7/platform.mk
++++ b/plat/nxp/soc-lx2160a/lx2160acex7/platform.mk
+@@ -81,6 +81,10 @@ endif
+ 
+ ifeq (${WARM_BOOT},yes)
+ $(eval $(call add_define_val,PHY_TRAINING_REGS_ON_FLASH,'${BL2_BIN_XSPI_NOR_END_ADDRESS} - ${NXP_XSPI_NOR_UNIT_SIZE}'))
++endif
++
++ifneq (${XMP_PROFILE},)
++$(eval $(call add_define_val,XMP_PROFILE,${XMP_PROFILE}))
+ endif
+ 
+  # Adding Platform files build files
+-- 
+2.53.0
+

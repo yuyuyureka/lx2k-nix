@@ -1,0 +1,74 @@
+From 98f638d7300968b9593a2fc163bdf3ff127c7c48 Mon Sep 17 00:00:00 2001
+From: Pierre Gondois <pierre.gondois@arm.com>
+Date: Fri, 7 Jun 2024 16:46:10 +0200
+Subject: [PATCH 3/5] Platform/NXP: Move Serial Port info to Arch Common
+
+Some DynamicTables objects have been moved from the Arm namespace
+to a new Arch Common namespace. Reflect this change by
+renaming/moving the relevant object.
+
+This patch modifies the ConfigurationManager of the NXP
+platforms for the following Arch Common object Id:
+- EArchCommonObjConsolePortInfo
+- EArchCommonObjSerialDebugPortInfo
+
+Signed-off-by: Pierre Gondois <pierre.gondois@arm.com>
+---
+ .../ConfigurationManager.c                    | 20 +++++++++----------
+ .../ConfigurationManager.h                    |  2 +-
+ 2 files changed, 11 insertions(+), 11 deletions(-)
+
+diff --git a/Platform/NXP/ConfigurationManagerPkg/ConfigurationManagerDxe/ConfigurationManager.c b/Platform/NXP/ConfigurationManagerPkg/ConfigurationManagerDxe/ConfigurationManager.c
+index 6de0c768e8..d1e02cacaf 100644
+--- a/Platform/NXP/ConfigurationManagerPkg/ConfigurationManagerDxe/ConfigurationManager.c
++++ b/Platform/NXP/ConfigurationManagerPkg/ConfigurationManagerDxe/ConfigurationManager.c
+@@ -518,6 +518,16 @@ GetArchCommonNameSpaceObject (
+                  );
+       break;
+ 
++    case EArchCommonObjConsolePortInfo:
++      Status = HandleCmObject (
++                 CmObjectId,
++                 &PlatformRepo->SpcrSerialPort,
++                 sizeof (PlatformRepo->SpcrSerialPort),
++                 1,
++                 CmObject
++                 );
++      break;
++
+       default: {
+       Status = EFI_NOT_FOUND;
+       DEBUG ((
+@@ -663,16 +673,6 @@ GetArmNameSpaceObject (
+                  );
+       break;
+ 
+-    case EArmObjSerialConsolePortInfo:
+-      Status = HandleCmObject (
+-                 CmObjectId,
+-                 &PlatformRepo->SpcrSerialPort,
+-                 sizeof (PlatformRepo->SpcrSerialPort),
+-                 1,
+-                 CmObject
+-                 );
+-      break;
+-
+     case EArmObjPciConfigSpaceInfo:
+       Status = HandleCmObjectRefByToken (
+                  This,
+diff --git a/Platform/NXP/ConfigurationManagerPkg/ConfigurationManagerDxe/ConfigurationManager.h b/Platform/NXP/ConfigurationManagerPkg/ConfigurationManagerDxe/ConfigurationManager.h
+index c276ba0489..494adbc775 100644
+--- a/Platform/NXP/ConfigurationManagerPkg/ConfigurationManagerDxe/ConfigurationManager.h
++++ b/Platform/NXP/ConfigurationManagerPkg/ConfigurationManagerDxe/ConfigurationManager.h
+@@ -111,7 +111,7 @@ typedef struct PlatformRepositoryInfo {
+   CM_ARM_PCI_CONFIG_SPACE_INFO              PciConfigInfo[PLAT_PCI_CONFG_COUNT];
+ 
+   /// Serial port information for serial port console redirection port
+-  CM_ARM_SERIAL_PORT_INFO                   SpcrSerialPort;
++  CM_ARCH_COMMON_SERIAL_PORT_INFO           SpcrSerialPort;
+ 
+   /// Fsl Board Revision
+   UINT32                                    FslBoardRevision;
+-- 
+2.53.0
+

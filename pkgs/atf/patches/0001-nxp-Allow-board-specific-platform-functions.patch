@@ -1,0 +1,53 @@
+From 1345c9eaf423dc3b1e4c8bf65e0d3fcb89c82c02 Mon Sep 17 00:00:00 2001
+From: Jon Nettleton <jon@solid-run.com>
+Date: Thu, 11 Mar 2021 11:33:31 +0100
+Subject: [PATCH 1/6] nxp: Allow board specific platform functions
+
+This changes two platform functions to .weak so that a board
+specific configuration can override them.  It also sets SECURE_BOOT
+as defined if it was passed on this command line.  This makes
+it easier to customize hardware settings per board depending on
+a normal vs SECURE_BOOT build
+
+Signed-off-by: Jon Nettleton <jon@solid-run.com>
+---
+ plat/nxp/soc-lx2160a/aarch64/lx2160a.S | 3 ++-
+ plat/nxp/soc-lx2160a/soc.mk            | 1 +
+ 2 files changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/plat/nxp/soc-lx2160a/aarch64/lx2160a.S b/plat/nxp/soc-lx2160a/aarch64/lx2160a.S
+index cc679f2ba..016535192 100644
+--- a/plat/nxp/soc-lx2160a/aarch64/lx2160a.S
++++ b/plat/nxp/soc-lx2160a/aarch64/lx2160a.S
+@@ -23,6 +23,7 @@
+ .global soc_init_finish
+ .global _set_platform_security
+ .global _soc_set_start_addr
++.weak init_tzpc
+ 
+ .global _soc_core_release
+ .global _soc_ck_disabled
+@@ -31,7 +32,7 @@
+ .global _soc_core_entr_off
+ .global _soc_core_exit_off
+ .global _soc_sys_reset
+-.global _soc_sys_off
++.weak	 _soc_sys_off
+ .global _soc_core_prep_stdby
+ .global _soc_core_entr_stdby
+ .global _soc_core_exit_stdby
+diff --git a/plat/nxp/soc-lx2160a/soc.mk b/plat/nxp/soc-lx2160a/soc.mk
+index 239442c20..9e63155c1 100644
+--- a/plat/nxp/soc-lx2160a/soc.mk
++++ b/plat/nxp/soc-lx2160a/soc.mk
+@@ -47,6 +47,7 @@ $(eval $(call SET_NXP_MAKE_FLAG,SNVS_NEEDED,BL2))
+ # Used by create_pbl tool to
+ # create bl2_<boot_mode>_sec.pbl image
+ SECURE_BOOT	:= yes
++$(eval $(call add_define,SECURE_BOOT))
+ endif
+ $(eval $(call SET_NXP_MAKE_FLAG,CRYPTO_NEEDED,BL_COMM))
+ 
+-- 
+2.53.0
+
