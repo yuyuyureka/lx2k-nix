@@ -1,4 +1,4 @@
-{ lib, stdenv, fetchFromGitHub, edk2, util-linux, nasm, acpica-tools, dtc, qoriq-mc-bin }:
+{ lib, stdenv, fetchFromGitHub, edk2, util-linux, nasm, acpica-tools, dtc, qoriq-mc-bin, linux_testing }:
 let
   edk2-platforms = stdenv.mkDerivation {
     name = "edk2-platforms";
@@ -17,9 +17,12 @@ let
       ./0005-Platform-NXP-Update-DynamicTablesPkg-generator-paths.patch
 
       ./nvme.patch
+      ./dt.patch
     ];
     buildPhase = "true";
     installPhase = ''
+      cp ${linux_testing.src}/arch/arm64/boot/dts/freescale/fsl-lx2160a* Platform/NXP/LX2160aRdbPkg/DeviceTree/
+      cp -rL ${linux_testing.src}/include/dt-bindings Platform/NXP/LX2160aRdbPkg/DeviceTree/
       mkdir -p $out
       cp -r * $out/
     '';

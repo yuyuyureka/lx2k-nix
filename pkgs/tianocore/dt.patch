@@ -1,0 +1,72 @@
+diff --git a/Platform/NXP/LX2160aRdbPkg/DeviceTree/DeviceTree.inf b/Platform/NXP/LX2160aRdbPkg/DeviceTree/DeviceTree.inf
+new file mode 100644
+index 0000000000..1df56a5df9
+--- /dev/null
++++ b/Platform/NXP/LX2160aRdbPkg/DeviceTree/DeviceTree.inf
+@@ -0,0 +1,17 @@
++[Defines]
++  INF_VERSION    = 0x0001001A
++  BASE_NAME      = LX2160aDeviceTree
++  FILE_GUID      = 25462CDA-221F-47DF-AC1D-259CFAA4E326 # gDtPlatformDefaultDtbFileGuid
++  MODULE_TYPE    = USER_DEFINED
++  VERSION_STRING = 1.0
++
++[Sources]
++  # The order of these file is important
++  # the fist file is main platform dtb file which is loaded by DtDxe driver
++  # the order of the rest of the files in determined by their parsing in SocFixupLib
++  fsl-lx2160a-honeycomb.dts
++
++[Packages]
++  MdePkg/MdePkg.dec
++  Silicon/NXP/NxpQoriqLs.dec
++  Silicon/NXP/LX2160A/LX2160A.dec
+diff --git a/Platform/NXP/LX2160aRdbPkg/LX2160aRdbPkg.dsc b/Platform/NXP/LX2160aRdbPkg/LX2160aRdbPkg.dsc
+index 8482451fba..65cd95e26d 100644
+--- a/Platform/NXP/LX2160aRdbPkg/LX2160aRdbPkg.dsc
++++ b/Platform/NXP/LX2160aRdbPkg/LX2160aRdbPkg.dsc
+@@ -78,6 +78,18 @@
+   #
+   MdeModulePkg/Bus/Pci/NvmExpressDxe/NvmExpressDxe.inf
+ 
++
++  #
++  # DT support
++  #
++  Platform/NXP/LX2160aRdbPkg/DeviceTree/DeviceTree.inf
++
++  EmbeddedPkg/Drivers/DtPlatformDxe/DtPlatformDxe.inf {
++    <LibraryClasses>
++      DtPlatformDtbLoaderLib|EmbeddedPkg/Library/DxeDtPlatformDtbLoaderLibDefault/DxeDtPlatformDtbLoaderLibDefault.inf
++  }
++
++
+   #
+   # Dynamic Table Factory
+   !if $(DYNAMIC_ACPI_ENABLE) == TRUE
+diff --git a/Platform/NXP/LX2160aRdbPkg/LX2160aRdbPkg.fdf b/Platform/NXP/LX2160aRdbPkg/LX2160aRdbPkg.fdf
+index aaa1723a93..93c1518203 100644
+--- a/Platform/NXP/LX2160aRdbPkg/LX2160aRdbPkg.fdf
++++ b/Platform/NXP/LX2160aRdbPkg/LX2160aRdbPkg.fdf
+@@ -144,6 +144,12 @@ READ_LOCK_STATUS   = TRUE
+   #
+   INF MdeModulePkg/Bus/Pci/NvmExpressDxe/NvmExpressDxe.inf
+ 
++  #
++  # DTB
++  #
++  INF EmbeddedPkg/Drivers/DtPlatformDxe/DtPlatformDxe.inf
++  INF RuleOverride = DTB Platform/NXP/LX2160aRdbPkg/DeviceTree/DeviceTree.inf
++
+   #
+   # FAT filesystem + GPT/MBR partitioning
+   #
+@@ -223,3 +229,8 @@ READ_LOCK_STATUS   = TRUE
+       SECTION FV_IMAGE = FVMAIN
+     }
+   }
++
++[Rule.Common.USER_DEFINED.DTB]
++  FILE FREEFORM = $(NAMED_GUID) {
++    RAW BIN                |.dtb
++  }
