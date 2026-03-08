@@ -23,6 +23,7 @@ let
     installPhase = ''
       cp ${linux_testing.src}/arch/arm64/boot/dts/freescale/fsl-lx2160a* Platform/NXP/LX2160aRdbPkg/DeviceTree/
       cp -rL ${linux_testing.src}/include/dt-bindings Platform/NXP/LX2160aRdbPkg/DeviceTree/
+      sed 's:#include "fsl-lx2160a.dtsi:#include "fsl-lx2160a-rev2.dtsi":g' -i Platform/NXP/LX2160aRdbPkg/DeviceTree/fsl-lx2160a-cex7.dtsi
       mkdir -p $out
       cp -r * $out/
     '';
