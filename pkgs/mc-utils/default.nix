@@ -8,7 +8,7 @@ stdenv.mkDerivation rec {
     owner = "nxp-qoriq";
     repo = "mc-utils";
     rev = "mc_release_${version}";
-    hash = "sha256-1jxNbTy2Cv3STI7wHrhfPkAeZLMvBxwEHEM0iL9lknb=";
+    hash = "sha256-aq5XTgYlIyyIbBdy09FrFWqT6ttLTTFXS/RnMFbD37g=";
   };
 
   patches = [

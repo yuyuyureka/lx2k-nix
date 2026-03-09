@@ -3,6 +3,6 @@
 fetchFromGitHub {
   owner = "NXP";
   repo = "qoriq-mc-binary";
-  rev = "mc_release_10.30.0";
-  sha256 = "sha256-3dB5+ugcTKzrUACUlRhcrka9/sSBjY2mT9qp2aSkbAs=";
+  rev = "mc_release_10.40.0";
+  hash = "sha256-td41almGBhlK74PsEPxCdhl4BqmqOpatgNHBQhnU1kI=";
 }
